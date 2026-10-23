@@ -72,7 +72,7 @@ python3 benchmarks/benchmark_suite.py
 ```bash
 python3 -m uvicorn server.app:app --host 0.0.0.0 --port 8000
 ```
-Open **`http://localhost:8000`** in your browser to explore:
+Open **`http://localhost:8000`** (or the live public demo at **[https://simple-discussed-anchor-jumping.trycloudflare.com](https://simple-discussed-anchor-jumping.trycloudflare.com)**) in your browser to explore:
 - **Autonomous Cockpit**: Interactive operational scenarios (EKS OOM, ASG Flash-Spike, Prompt Injection Attack).
 - **Benchmark Lab**: Side-by-side latency & cost charts.
 - **Reusable Patterns**: Interactive recipe viewer with 1-click copy.

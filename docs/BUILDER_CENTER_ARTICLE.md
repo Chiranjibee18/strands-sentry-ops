@@ -207,5 +207,6 @@ We conducted 30 benchmark cycles across 6 realistic operational scenarios, measu
 Strands Decider 2B is a game-changing tool for builders creating production-grade agents on AWS. By separating instant deterministic decisions from heavy generative reasoning, agents become exponentially faster, vastly cheaper, and significantly safer.
 
 - **Full Source Code**: [github.com/Chiranjibee18/strands-sentry-ops](https://github.com/Chiranjibee18/strands-sentry-ops)
+- **Live Interactive Demo**: [simple-discussed-anchor-jumping.trycloudflare.com](https://simple-discussed-anchor-jumping.trycloudflare.com)
 - **Reusable Patterns Pack**: `decider_patterns/` (Apache 2.0 Licensed)
 - **Demo Video**: [3-Minute YouTube Walkthrough](#)
