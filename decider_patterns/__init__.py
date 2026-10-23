@@ -10,21 +10,40 @@ Tags: #strands-decider-2b #guardrails #tool-selection #model-routing #policy #co
 
 __version__ = "1.0.0"
 
-from .client import StrandsDeciderClient, DeciderDecision, DeciderAnswer
-from .guardrails import DeciderGuardrailHandler, GuardrailCheckResult
-from .tool_selection import DeciderToolSelector, ToolSelectionResult
+from .client import StrandsDeciderClient, DeciderDecision, DeciderAnswer, NoulQuestion, ChoiceQuestion, ScoreQuestion
+from .guardrails import (
+    DeciderGuardrailHandler,
+    GuardrailCheckResult,
+    ToolCallEvent,
+    Proceed,
+    Deny,
+    Confirm,
+    Guide,
+    InterventionHandler,
+)
+from .tool_selection import DeciderToolSelector, ToolSelectionResult, ToolDefinition
 from .model_routing import DeciderModelRouter, RoutingTier, ModelRoutingResult
 from .policy import DeciderPolicyClassifier, PolicyCategory, PolicyClassificationResult
-from .context_scorer import DeciderContextScorer, ScoredContextChunk
+from .context_scorer import DeciderContextScorer, ScoredContextChunk, ContextChunk
 
 __all__ = [
     "StrandsDeciderClient",
     "DeciderDecision",
     "DeciderAnswer",
+    "NoulQuestion",
+    "ChoiceQuestion",
+    "ScoreQuestion",
     "DeciderGuardrailHandler",
     "GuardrailCheckResult",
+    "ToolCallEvent",
+    "Proceed",
+    "Deny",
+    "Confirm",
+    "Guide",
+    "InterventionHandler",
     "DeciderToolSelector",
     "ToolSelectionResult",
+    "ToolDefinition",
     "DeciderModelRouter",
     "RoutingTier",
     "ModelRoutingResult",
@@ -33,4 +52,5 @@ __all__ = [
     "PolicyClassificationResult",
     "DeciderContextScorer",
     "ScoredContextChunk",
+    "ContextChunk",
 ]

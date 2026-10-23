@@ -51,6 +51,7 @@ class AgentExecutionReport(BaseModel):
     total_latency_ms: float
     total_cost_usd: float
     equivalent_pure_llm_cost_usd: float
+    equivalent_pure_llm_latency_ms: float = 7400.0
     cost_savings_percent: float
     latency_savings_percent: float
     steps: List[StepTelemetry]
@@ -222,7 +223,7 @@ class StrandsSentryAgent:
 
             # Step 7: Amazon Bedrock Generative RCA & Post-Mortem (System 2)
             # Only escalate to Bedrock when deep synthesis is required or P1 incident
-            if routing_res.selected_tier == RoutingTier.BEDROCK_FRONTIER or policy_res.category in [
+            if routing_res.selected_tier == RoutingTier.BEDROCK_FRONTIER or policy_res.category.value in [
                 "p1_critical_outage", "security_incident"
             ]:
                 context_text = "\n".join([f"[{c.chunk.source}]: {c.chunk.text}" for c in injected_chunks])
@@ -252,7 +253,6 @@ class StrandsSentryAgent:
         total_latency = (time.perf_counter() - t_start) * 1000.0
 
         # Comparative Metrics: What if all 5 decisions had been sent to Bedrock?
-        # A traditional agent loop calls Bedrock for: Policy, Tool Selection, Grounding, Memory Filtering = 4 LLM calls!
         pure_llm_cost = (4 * 0.0042) + (total_cost if bedrock_rca else 0.0042)
         pure_llm_latency = (4 * 1850.0) + (bedrock_rca.latency_ms if bedrock_rca else 1850.0)
         
@@ -272,23 +272,74 @@ class StrandsSentryAgent:
             total_latency_ms=round(total_latency, 1),
             total_cost_usd=round(total_cost, 6),
             equivalent_pure_llm_cost_usd=round(pure_llm_cost, 6),
+            equivalent_pure_llm_latency_ms=round(pure_llm_latency, 1),
             cost_savings_percent=round(cost_savings, 1),
             latency_savings_percent=round(latency_savings, 1),
             steps=steps,
         )
 
+    def execute_confirmed_action(
+        self,
+        tool_name: str,
+        tool_args: Dict[str, Any],
+        user_query: str,
+        operator_note: str = "Authorized by human operator sign-off",
+    ) -> AgentExecutionReport:
+        """
+        Executes an action that was previously pending human confirmation (CONFIRM),
+        injecting explicit operator override authorization.
+        """
+        confirmed_prompt = f"{user_query} [CONFIRMED: {operator_note}]"
+        return self.handle_request(user_query=confirmed_prompt, proposed_args=tool_args)
+
     def _derive_default_args(self, tool_name: str, query: str) -> Dict[str, Any]:
-        """Maps operational tool defaults from query text."""
+        """Maps operational tool defaults and dynamically parses entities from query text."""
+        import re
+        q_lower = query.lower()
+
         if tool_name == "scale_auto_scaling_group":
-            return {"asg_name": "payment-service-asg", "desired_capacity": 8}
+            asg_match = re.search(r"([a-zA-Z0-9_\-]+(?:-asg|_asg))", query, re.IGNORECASE)
+            asg_name = asg_match.group(1) if asg_match else "payment-service-asg"
+            cap_match = re.search(r"(?:to|capacity|scale\s+to)\s+(\d+)", query, re.IGNORECASE)
+            capacity = int(cap_match.group(1)) if cap_match else 8
+            return {"asg_name": asg_name, "desired_capacity": capacity}
+
         elif tool_name == "flush_redis_cache":
-            return {"cluster_id": "redis-prod-cache-01", "db_index": 0}
+            cluster_match = re.search(r"([a-zA-Z0-9_\-]+(?:-cache|-redis|redis-[a-zA-Z0-9_\-]+))", query, re.IGNORECASE)
+            cluster_id = cluster_match.group(1) if cluster_match else "redis-prod-cache-01"
+            db_match = re.search(r"db\[?(\d+)\]?", query, re.IGNORECASE)
+            db_idx = int(db_match.group(1)) if db_match else 0
+            return {"cluster_id": cluster_id, "db_index": db_idx}
+
         elif tool_name == "isolate_compromised_instance":
-            return {"instance_id": "i-09a8b7c6d5e4f3210", "vpc_id": "vpc-prod-01"}
+            inst_match = re.search(r"(i-[0-9a-fA-F]{8,17})", query)
+            instance_id = inst_match.group(1) if inst_match else "i-09a8b7c6d5e4f3210"
+            vpc_match = re.search(r"(vpc-[0-9a-fA-F]{8,17})", query)
+            vpc_id = vpc_match.group(1) if vpc_match else "vpc-prod-01"
+            return {"instance_id": instance_id, "vpc_id": vpc_id}
+
         elif tool_name == "remediate_oom_pod":
-            return {"namespace": "production", "deployment_name": "checkout-api", "new_memory_limit": "2Gi"}
+            dep_match = re.search(r"(?:deployment|pod)\s+([a-zA-Z0-9_\-]+)", query, re.IGNORECASE)
+            deployment = dep_match.group(1) if dep_match else "checkout-api"
+            ns_match = re.search(r"(?:in|namespace)\s+([a-zA-Z0-9_\-]+)(?:\s+namespace)?", query, re.IGNORECASE)
+            namespace = ns_match.group(1) if ns_match else "production"
+            mem_match = re.search(r"(\d+[MG]i?)", query, re.IGNORECASE)
+            mem_limit = mem_match.group(1) if mem_match else "2Gi"
+            return {"namespace": namespace, "deployment_name": deployment, "new_memory_limit": mem_limit}
+
         elif tool_name == "fetch_cloudwatch_metrics":
-            return {"service_name": "payment-service", "metric_name": "CPUUtilization"}
+            svc_match = re.search(r"(?:service|on)\s+([a-zA-Z0-9_\-]+)", query, re.IGNORECASE)
+            svc_name = svc_match.group(1) if svc_match else "payment-service"
+            metric = "CPUUtilization"
+            if "memory" in q_lower:
+                metric = "MemoryUtilization"
+            elif "latency" in q_lower:
+                metric = "TargetResponseTime"
+            return {"service_name": svc_name, "metric_name": metric}
+
         elif tool_name == "terminate_rds_database":
-            return {"db_instance_id": "prod-customer-db"}
+            db_match = re.search(r"(?:database|db|rds)\s+([a-zA-Z0-9_\-]+)", query, re.IGNORECASE)
+            db_id = db_match.group(1) if db_match else "prod-customer-db"
+            return {"db_instance_id": db_id}
+
         return {}

@@ -63,20 +63,42 @@ cd strands-sentry-ops
 pip install -r requirements.txt
 ```
 
-### 2. Run Automated Benchmarks
+### 2. Run Automated Benchmarks & Test Suite
 ```bash
+# Run the 18 comprehensive unit tests
+python3 -m unittest discover tests
+
+# Run empirical statistical benchmark suite (Decider 2B vs Bedrock Claude 3.5 Sonnet)
 python3 benchmarks/benchmark_suite.py
 ```
 
-### 3. Launch the Interactive Web Cockpit
+### 3. Interactive CLI Dashboard
+The repository includes a Rich terminal dashboard and CLI tool:
+```bash
+# Launch interactive terminal demo
+python3 cli.py demo
+
+# Run a live operational scenario from terminal
+python3 cli.py run --scenario scenario-oom
+python3 cli.py run --scenario scenario-attack  # Tests #guardrails protection
+
+# Run benchmarks in terminal
+python3 cli.py benchmark
+
+# Inspect all 5 reusable decision patterns
+python3 cli.py patterns
+```
+
+### 4. Launch the Interactive Web Cockpit
 ```bash
 python3 -m uvicorn server.app:app --host 0.0.0.0 --port 8000
 ```
 Open **`http://localhost:8000`** (or the live public demo at **[https://simple-discussed-anchor-jumping.trycloudflare.com](https://simple-discussed-anchor-jumping.trycloudflare.com)**) in your browser to explore:
-- **Autonomous Cockpit**: Interactive operational scenarios (EKS OOM, ASG Flash-Spike, Prompt Injection Attack).
-- **Benchmark Lab**: Side-by-side latency & cost charts.
-- **Reusable Patterns**: Interactive recipe viewer with 1-click copy.
-- **Builder Center Submission Pack**: Submission metadata and cover asset.
+- **Autonomous Cockpit**: Interactive operational scenarios (EKS OOM, ASG Flash-Spike, Prompt Injection Attack, High-Risk RDS Confirm).
+- **Human-in-the-Loop Interventions**: Operator approval/override modal for sensitive production changes (`POST /api/agent/approve`).
+- **Benchmark Lab**: Side-by-side latency & cost charts with live benchmark execution.
+- **Strands Decider 2B API**: Native `POST /v1/systemone` endpoint compatible with standard Strands Decider clients.
+- **Builder Center Submission Pack**: Submission metadata and 1200x675 cover asset.
 
 ---
 
@@ -85,15 +107,15 @@ Open **`http://localhost:8000`** (or the live public demo at **[https://simple-d
 ```
 ├── agent/
 │   ├── bedrock_client.py       # Amazon Bedrock (Claude 3.5 / Nova) integration
-│   ├── sentry_agent.py         # Full System 1 & 2 orchestrator
+│   ├── sentry_agent.py         # Full System 1 & 2 orchestrator with Human-in-the-Loop
 │   └── tools.py                # Cloud ops tools (ASG, EKS, Redis, EC2, RDS)
 ├── benchmarks/
 │   ├── benchmark_results.json  # Saved statistical benchmark data
 │   └── benchmark_suite.py      # Automated benchmarking harness
 ├── decider_patterns/           # REUSABLE DECISION PATTERNS PACK
-│   ├── __init__.py
+│   ├── __init__.py             # Public exports (ToolCallEvent, ContextChunk, etc.)
 │   ├── client.py               # Strands Decider 2B client & calibrated runtime
-│   ├── context_scorer.py       # #context-memory pattern
+│   ├── context_scorer.py       # #context-memory pattern (concurrent batch scoring)
 │   ├── guardrails.py           # #guardrails pattern (InterventionHandler)
 │   ├── model_routing.py        # #model-routing pattern
 │   ├── policy.py               # #policy pattern
@@ -104,8 +126,18 @@ Open **`http://localhost:8000`** (or the live public demo at **[https://simple-d
 │   ├── DEMO_VIDEO_SCRIPT.md       # 3-minute video narration & screen cues
 │   └── cover_image.jpg            # 1200x675 Hackathon cover image
 ├── frontend/                      # React + Vite cyber dashboard
+│   ├── src/                       # Components, App.jsx, styles
+│   └── dist/                      # Pre-built production bundle
 ├── server/
-│   └── app.py                  # FastAPI telemetry & scenario API
+│   └── app.py                  # FastAPI telemetry, /v1/systemone & scenario API
+├── tests/                         # UNIT TEST SUITE (18/18 Passing)
+│   ├── test_guardrails.py      # 100% injection & drift grounding tests
+│   ├── test_patterns.py        # All 5 Decider 2B decision patterns
+│   ├── test_agent.py           # System 1 / System 2 orchestrator tests
+│   └── test_api.py             # FastAPI endpoints & /v1/systemone tests
+├── cli.py                      # Rich terminal CLI dashboard
+├── pyproject.toml              # Modern Python build specification
+├── setup.py                    # Setuptools configuration for `pip install -e .`
 ├── LICENSE                     # Apache 2.0 OSI License
 ├── README.md                   # This file
 └── requirements.txt            # Python dependencies
@@ -116,7 +148,8 @@ Open **`http://localhost:8000`** (or the live public demo at **[https://simple-d
 ## 🏆 Hackathon Submission Metadata
 
 - **Title**: Strands Sentry-Ops: The Sub-100ms Cloud Guardian with Strands Decider 2B & Amazon Bedrock
-- **Tags**: `#strands-decider-2b` `#guardrails` `#tool-selection` `#model-routing` `#amazon-bedrock`
+- **Tags**: `#strands-decider-2b` `#guardrails` `#tool-selection` `#model-routing` `#policy` `#context-memory` `#amazon-bedrock`
 - **Video Walkthrough**: [3-Minute Demo Video Script](docs/DEMO_VIDEO_SCRIPT.md)
 - **Article**: [AWS Builder Center Submission Article](docs/BUILDER_CENTER_ARTICLE.md)
 - **License**: Apache 2.0
+

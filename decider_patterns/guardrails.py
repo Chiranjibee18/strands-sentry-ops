@@ -51,6 +51,17 @@ class Guide(BaseModel):
 InterventionResult = Union[Proceed, Deny, Confirm, Guide]
 
 
+try:
+    from strands.interventions.handler import InterventionHandler
+except ImportError:
+    class InterventionHandler:
+        """Strands InterventionHandler lifecycle interface fallback."""
+        name: str = "base-intervention-handler"
+
+        def before_tool_call(self, event: Any) -> Any:
+            raise NotImplementedError
+
+
 class ToolCallEvent(BaseModel):
     """Represents an agent's intended tool invocation event."""
     tool_name: str
@@ -71,7 +82,7 @@ class GuardrailCheckResult(BaseModel):
     state_prompt: str
 
 
-class DeciderGuardrailHandler:
+class DeciderGuardrailHandler(InterventionHandler):
     """
     Drop-in Strands InterventionHandler powered by Strands Decider 2B.
     Inspects tool calls before execution to verify arguments are grounded in user intent.
