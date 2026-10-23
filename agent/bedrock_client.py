@@ -43,13 +43,25 @@ class AmazonBedrockClient:
     def __init__(self, region_name: str = "us-east-1"):
         self.region_name = os.environ.get("AWS_REGION", region_name)
         self._boto3_client = None
+        self._has_aws_credentials = False
+        self._last_invocation_error = None
         self._init_boto3()
 
     def _init_boto3(self):
+        """Initializes Boto3 bedrock-runtime client using standard AWS credential chain."""
         try:
-            self._boto3_client = boto3.client("bedrock-runtime", region_name=self.region_name)
-        except Exception:
+            session = boto3.Session(region_name=self.region_name)
+            creds = session.get_credentials()
+            if creds is not None:
+                self._has_aws_credentials = True
+                self._boto3_client = session.client("bedrock-runtime", region_name=self.region_name)
+            else:
+                self._has_aws_credentials = False
+                self._boto3_client = None
+        except Exception as e:
+            self._has_aws_credentials = False
             self._boto3_client = None
+            self._last_invocation_error = str(e)
 
     def invoke_reasoning(
         self,
@@ -57,31 +69,58 @@ class AmazonBedrockClient:
         system_context: str = "You are Strands Sentry-Ops, an autonomous AWS Cloud SRE and Security Agent.",
         model_id: Optional[str] = None,
         max_tokens: int = 600,
+        require_live: bool = False,
     ) -> BedrockInferenceResult:
         """
         Invokes Amazon Bedrock for generative synthesis, root cause analysis, or incident reporting.
+        Uses live Bedrock runtime when credentials exist (IAM role, SSO, env vars, ~/.aws/credentials).
+        If require_live is True (or REQUIRE_LIVE_BEDROCK=1), raises an error rather than simulating.
         """
         model = model_id or self.DEFAULT_MODEL
         t0 = time.perf_counter()
+        strict_mode = require_live or os.environ.get("REQUIRE_LIVE_BEDROCK", "").lower() in ["1", "true"]
 
-        # Try live AWS Bedrock call if configured
-        if self._boto3_client and os.environ.get("AWS_ACCESS_KEY_ID"):
+        # 1. Attempt live AWS Bedrock Runtime invocation
+        if self._boto3_client:
             try:
-                body = json.dumps({
-                    "anthropic_version": "bedrock-2023-05-31",
-                    "max_tokens": max_tokens,
-                    "system": system_context,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.2,
-                })
+                # Format payload based on model family
+                if "anthropic" in model:
+                    body = json.dumps({
+                        "anthropic_version": "bedrock-2023-05-31",
+                        "max_tokens": max_tokens,
+                        "system": system_context,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.2,
+                    })
+                elif "amazon.nova" in model:
+                    body = json.dumps({
+                        "inferenceConfig": {"max_new_tokens": max_tokens, "temperature": 0.2},
+                        "system": [{"text": system_context}],
+                        "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                    })
+                else:
+                    body = json.dumps({
+                        "prompt": f"\n\nHuman: {system_context}\n{prompt}\n\nAssistant:",
+                        "max_tokens_to_sample": max_tokens,
+                    })
+
                 resp = self._boto3_client.invoke_model(modelId=model, body=body)
                 resp_body = json.loads(resp["body"].read().decode("utf-8"))
                 latency_ms = (time.perf_counter() - t0) * 1000.0
-                
-                text = resp_body["content"][0]["text"]
-                in_tok = resp_body.get("usage", {}).get("input_tokens", len(prompt.split()) * 2)
-                out_tok = resp_body.get("usage", {}).get("output_tokens", len(text.split()) * 2)
-                
+
+                if "anthropic" in model:
+                    text = resp_body["content"][0]["text"]
+                    in_tok = resp_body.get("usage", {}).get("input_tokens", len(prompt.split()) * 2)
+                    out_tok = resp_body.get("usage", {}).get("output_tokens", len(text.split()) * 2)
+                elif "amazon.nova" in model:
+                    text = resp_body.get("output", {}).get("message", {}).get("content", [{}])[0].get("text", "")
+                    in_tok = resp_body.get("usage", {}).get("inputTokens", len(prompt.split()) * 2)
+                    out_tok = resp_body.get("usage", {}).get("outputTokens", len(text.split()) * 2)
+                else:
+                    text = resp_body.get("completion", "")
+                    in_tok = len(prompt.split()) * 2
+                    out_tok = len(text.split()) * 2
+
                 rates = self.PRICING.get(model, self.PRICING[self.DEFAULT_MODEL])
                 cost = (in_tok * rates["input"]) + (out_tok * rates["output"])
 
@@ -94,10 +133,14 @@ class AmazonBedrockClient:
                     cost_usd=round(cost, 6),
                     is_live_aws=True,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                self._last_invocation_error = str(e)
+                if strict_mode:
+                    raise RuntimeError(f"Live Amazon Bedrock invocation failed with error: {e}")
+        elif strict_mode:
+            raise RuntimeError("Live Amazon Bedrock requested, but no AWS credentials found in provider chain.")
 
-        # High-Fidelity Calibrated System 2 Bedrock Simulation (1,750ms - 2,100ms)
+        # 2. Transparent High-Fidelity Sandbox Simulation (Disclosed in telemetry)
         return self._simulate_bedrock(prompt, system_context, model, t0)
 
     def _simulate_bedrock(

@@ -60,6 +60,7 @@ class DeciderDecision(BaseModel):
     latency_ms: float
     model: str = "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610"
     is_simulated: bool = False
+    engine_mode: str = "CALIBRATED_SANDBOX"
 
 
 import os
@@ -68,8 +69,9 @@ import os
 class StrandsDeciderClient:
     """
     Client for Strands Decider 2B.
-    Communicates with local 'strands-decider serve' endpoint or executes
+    Communicates with local/remote 'strands-decider serve' endpoint or executes
     high-fidelity calibrated pointer-head evaluation in ~115ms.
+    Transparently discloses whether live inference or sandbox simulation was executed.
     """
 
     def __init__(
@@ -93,12 +95,15 @@ class StrandsDeciderClient:
         state: str,
         questions: Dict[str, DeciderQuestion],
         model: str = "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610",
+        require_live: bool = False,
     ) -> DeciderDecision:
         """
         Evaluate a given state text with a set of typed questions.
         Returns a DeciderDecision with calibrated confidence probabilities.
+        If require_live=True (or REQUIRE_LIVE_DECIDER=1), raises an exception rather than simulating.
         """
         start_time = time.perf_counter()
+        strict_mode = require_live or os.environ.get("REQUIRE_LIVE_DECIDER", "").lower() in ["1", "true"]
 
         # Try live HTTP server first if enabled
         if self.prefer_local_server:
@@ -118,12 +123,15 @@ class StrandsDeciderClient:
                         latency_ms=data.get("latency_ms", latency_ms),
                         model=model,
                         is_simulated=False,
+                        engine_mode="LIVE_DECIDER_2B",
                     )
-            except Exception:
-                # Fallback to local calibrated pointer-head engine
-                pass
+                elif strict_mode:
+                    raise RuntimeError(f"Live Strands Decider 2B HTTP server returned status code {resp.status_code}: {resp.text}")
+            except Exception as e:
+                if strict_mode:
+                    raise RuntimeError(f"Live Strands Decider 2B inference failed: {e}")
 
-        # Standalone Calibrated Local Engine (System 1 Pointer Head)
+        # Standalone Calibrated Local Engine (System 1 Pointer Head) - Disclosed in telemetry
         return self._evaluate_locally(state, questions, model, start_time)
 
     def _evaluate_locally(

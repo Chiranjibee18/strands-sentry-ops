@@ -16,6 +16,9 @@ class ToolResult(BaseModel):
     output: Dict[str, Any]
     message: str
     execution_time_ms: float
+    execution_mode: str = "SANDBOX_SAFETY_ISOLATION"
+    is_sandbox: bool = True
+    aws_service: str = "AWS CloudOps"
 
 
 def aws_fetch_cloudwatch_metrics(service_name: str, metric_name: str = "CPUUtilization") -> ToolResult:
