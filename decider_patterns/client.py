@@ -234,8 +234,10 @@ class StrandsDeciderClient:
                         reasoning_summary="Blocked by Decider 2B: Destructive tool execution is ungrounded in user request (scope drift attack detected).",
                     )
                 else:
-                    # User asked for destruction. Check for explicit approval ticket
-                    has_approval_ticket = any(w in intent_lower for w in ["authorized by", "ticket", "confirm", "sec-", "approved", "override"])
+                    # User asked for destruction. Check for explicit approval ticket and handle negations
+                    is_explicit_override = any(w in intent_lower for w in ["[confirmed", "operator override", "authorized by ticket", "override approved"])
+                    has_negation = (not is_explicit_override) and any(neg in intent_lower for neg in ["without", "no ticket", "lacking", "unauthorized", "unapproved", "missing ticket", "no approval"])
+                    has_approval_ticket = is_explicit_override or ((not has_negation) and any(w in intent_lower for w in ["authorized by", "ticket sec-", "sec-", "approved by", "override approved", "ticket #", "ticket:"]))
                     if not has_approval_ticket:
                         # Triggers CONFIRM (Human-in-the-loop approval)
                         return DeciderAnswer(
