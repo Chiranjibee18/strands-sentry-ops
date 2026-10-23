@@ -58,7 +58,7 @@ See [`docs/DECIDER_PATTERNS.md`](docs/DECIDER_PATTERNS.md) for full recipe docum
 
 ### 1. Clone & Setup
 ```bash
-git clone https://github.com/chiranjibee/strands-sentry-ops.git
+git clone https://github.com/Chiranjibee18/strands-sentry-ops.git
 cd strands-sentry-ops
 pip install -r requirements.txt
 ```

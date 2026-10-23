@@ -3,7 +3,7 @@
 > **Hackathon Submission**: AWS Agent Experience Hackathon: Strands Decider  
 > **Tags**: `#strands-decider-2b` `#guardrails` `#tool-selection` `#model-routing` `#amazon-bedrock`  
 > **Author**: Chiranjibee Panigrahi  
-> **Repository**: [github.com/chiranjibee/strands-sentry-ops](https://github.com/chiranjibee/strands-sentry-ops)  
+> **Repository**: [github.com/Chiranjibee18/strands-sentry-ops](https://github.com/Chiranjibee18/strands-sentry-ops)  
 
 ---
 
@@ -206,6 +206,6 @@ We conducted 30 benchmark cycles across 6 realistic operational scenarios, measu
 
 Strands Decider 2B is a game-changing tool for builders creating production-grade agents on AWS. By separating instant deterministic decisions from heavy generative reasoning, agents become exponentially faster, vastly cheaper, and significantly safer.
 
-- **Full Source Code**: [github.com/chiranjibee/strands-sentry-ops](https://github.com/chiranjibee/strands-sentry-ops)
+- **Full Source Code**: [github.com/Chiranjibee18/strands-sentry-ops](https://github.com/Chiranjibee18/strands-sentry-ops)
 - **Reusable Patterns Pack**: `decider_patterns/` (Apache 2.0 Licensed)
 - **Demo Video**: [3-Minute YouTube Walkthrough](#)

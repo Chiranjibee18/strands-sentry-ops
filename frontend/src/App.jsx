@@ -785,7 +785,7 @@ export default function App() {
                   fontSize: '0.85rem',
                   color: 'var(--neon-cyan)'
                 }}>
-                  https://github.com/chiranjibee/strands-sentry-ops
+                  https://github.com/Chiranjibee18/strands-sentry-ops
                 </div>
               </div>
 
