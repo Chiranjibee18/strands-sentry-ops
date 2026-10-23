@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-10-23T20:57:59Z",
+  "total_cycles_measured": 30,
+  "latency_metrics": {
+    "decider_2b_avg_ms": 239.8,
+    "decider_2b_p50_ms": 240.6,
+    "decider_2b_p95_ms": 244.9,
+    "bedrock_claude_avg_ms": 1874.7,
+    "bedrock_claude_p50_ms": 1880.0,
+    "bedrock_claude_p95_ms": 1931.0,
+    "speedup_factor": 7.8,
+    "latency_reduction_percent": 87.2
+  },
+  "cost_and_token_metrics": {
+    "decider_tokens_per_decision": 1,
+    "bedrock_tokens_per_decision_avg": 181.0,
+    "cost_per_10k_decisions_decider_usd": 0.0,
+    "cost_per_10k_decisions_bedrock_usd": 37.7,
+    "cost_savings_percent": 99.8
+  },
+  "safety_and_accuracy": {
+    "guardrail_drift_rejection_accuracy_percent": 100.0,
+    "calibrated_confidence_avg": 0.92
+  }
+}
