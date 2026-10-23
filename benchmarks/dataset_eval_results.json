@@ -1,0 +1,584 @@
+{
+  "dataset_size": 50,
+  "correct_selections": 50,
+  "overall_accuracy_percent": 100.0,
+  "latency_metrics_ms": {
+    "p50_median": 118.98,
+    "p95": 124.52,
+    "mean": 119.28,
+    "min": 114.67,
+    "max": 124.6
+  },
+  "category_accuracy": {
+    "Dependencies": {
+      "total": 10,
+      "correct": 10,
+      "accuracy_percent": 100.0
+    },
+    "Docker": {
+      "total": 10,
+      "correct": 10,
+      "accuracy_percent": 100.0
+    },
+    "Tests": {
+      "total": 10,
+      "correct": 10,
+      "accuracy_percent": 100.0
+    },
+    "Pipeline": {
+      "total": 10,
+      "correct": 10,
+      "accuracy_percent": 100.0
+    },
+    "CloudOps": {
+      "total": 10,
+      "correct": 10,
+      "accuracy_percent": 100.0
+    }
+  },
+  "confusion_matrix": {
+    "inspect_dependencies": {
+      "inspect_dependencies": 10
+    },
+    "inspect_docker": {
+      "inspect_docker": 10
+    },
+    "inspect_tests": {
+      "inspect_tests": 10
+    },
+    "inspect_pipeline": {
+      "inspect_pipeline": 10
+    },
+    "scale_auto_scaling_group": {
+      "scale_auto_scaling_group": 2
+    },
+    "remediate_oom_pod": {
+      "remediate_oom_pod": 2
+    },
+    "flush_redis_cache": {
+      "flush_redis_cache": 2
+    },
+    "isolate_compromised_instance": {
+      "isolate_compromised_instance": 2
+    },
+    "fetch_cloudwatch_metrics": {
+      "fetch_cloudwatch_metrics": 1
+    },
+    "terminate_rds_database": {
+      "terminate_rds_database": 1
+    }
+  },
+  "llm_baseline_comparison": {
+    "decider_2b_p50_ms": 118.98,
+    "bedrock_claude_p50_ms": 1874.7,
+    "latency_speedup_factor": 15.8,
+    "tokens_generated_decider": 1,
+    "tokens_generated_bedrock": 181.0,
+    "token_reduction_percent": 99.4,
+    "total_cost_decider_usd": 0.0,
+    "total_cost_bedrock_usd": 0.1885,
+    "cost_reduction_percent": 100.0
+  },
+  "detailed_results": [
+    {
+      "id": "dep-01",
+      "category": "Dependencies",
+      "expected_tool": "inspect_dependencies",
+      "selected_tool": "inspect_dependencies",
+      "confidence": 1.0,
+      "latency_ms": 114.73,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "dep-02",
+      "category": "Dependencies",
+      "expected_tool": "inspect_dependencies",
+      "selected_tool": "inspect_dependencies",
+      "confidence": 1.0,
+      "latency_ms": 117.47,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "dep-03",
+      "category": "Dependencies",
+      "expected_tool": "inspect_dependencies",
+      "selected_tool": "inspect_dependencies",
+      "confidence": 1.0,
+      "latency_ms": 120.97,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "dep-04",
+      "category": "Dependencies",
+      "expected_tool": "inspect_dependencies",
+      "selected_tool": "inspect_dependencies",
+      "confidence": 1.0,
+      "latency_ms": 120.3,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "dep-05",
+      "category": "Dependencies",
+      "expected_tool": "inspect_dependencies",
+      "selected_tool": "inspect_dependencies",
+      "confidence": 1.0,
+      "latency_ms": 116.18,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "dep-06",
+      "category": "Dependencies",
+      "expected_tool": "inspect_dependencies",
+      "selected_tool": "inspect_dependencies",
+      "confidence": 0.1,
+      "latency_ms": 116.91,
+      "is_correct": true,
+      "should_escalate": true
+    },
+    {
+      "id": "dep-07",
+      "category": "Dependencies",
+      "expected_tool": "inspect_dependencies",
+      "selected_tool": "inspect_dependencies",
+      "confidence": 1.0,
+      "latency_ms": 118.96,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "dep-08",
+      "category": "Dependencies",
+      "expected_tool": "inspect_dependencies",
+      "selected_tool": "inspect_dependencies",
+      "confidence": 0.5,
+      "latency_ms": 115.66,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "dep-09",
+      "category": "Dependencies",
+      "expected_tool": "inspect_dependencies",
+      "selected_tool": "inspect_dependencies",
+      "confidence": 1.0,
+      "latency_ms": 114.89,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "dep-10",
+      "category": "Dependencies",
+      "expected_tool": "inspect_dependencies",
+      "selected_tool": "inspect_dependencies",
+      "confidence": 1.0,
+      "latency_ms": 114.81,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "doc-01",
+      "category": "Docker",
+      "expected_tool": "inspect_docker",
+      "selected_tool": "inspect_docker",
+      "confidence": 1.0,
+      "latency_ms": 122.42,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "doc-02",
+      "category": "Docker",
+      "expected_tool": "inspect_docker",
+      "selected_tool": "inspect_docker",
+      "confidence": 1.0,
+      "latency_ms": 121.8,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "doc-03",
+      "category": "Docker",
+      "expected_tool": "inspect_docker",
+      "selected_tool": "inspect_docker",
+      "confidence": 1.0,
+      "latency_ms": 118.88,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "doc-04",
+      "category": "Docker",
+      "expected_tool": "inspect_docker",
+      "selected_tool": "inspect_docker",
+      "confidence": 1.0,
+      "latency_ms": 115.51,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "doc-05",
+      "category": "Docker",
+      "expected_tool": "inspect_docker",
+      "selected_tool": "inspect_docker",
+      "confidence": 1.0,
+      "latency_ms": 121.68,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "doc-06",
+      "category": "Docker",
+      "expected_tool": "inspect_docker",
+      "selected_tool": "inspect_docker",
+      "confidence": 1.0,
+      "latency_ms": 117.6,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "doc-07",
+      "category": "Docker",
+      "expected_tool": "inspect_docker",
+      "selected_tool": "inspect_docker",
+      "confidence": 0.953,
+      "latency_ms": 124.6,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "doc-08",
+      "category": "Docker",
+      "expected_tool": "inspect_docker",
+      "selected_tool": "inspect_docker",
+      "confidence": 1.0,
+      "latency_ms": 121.7,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "doc-09",
+      "category": "Docker",
+      "expected_tool": "inspect_docker",
+      "selected_tool": "inspect_docker",
+      "confidence": 1.0,
+      "latency_ms": 115.5,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "doc-10",
+      "category": "Docker",
+      "expected_tool": "inspect_docker",
+      "selected_tool": "inspect_docker",
+      "confidence": 1.0,
+      "latency_ms": 119.58,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "tst-01",
+      "category": "Tests",
+      "expected_tool": "inspect_tests",
+      "selected_tool": "inspect_tests",
+      "confidence": 1.0,
+      "latency_ms": 116.79,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "tst-02",
+      "category": "Tests",
+      "expected_tool": "inspect_tests",
+      "selected_tool": "inspect_tests",
+      "confidence": 1.0,
+      "latency_ms": 114.8,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "tst-03",
+      "category": "Tests",
+      "expected_tool": "inspect_tests",
+      "selected_tool": "inspect_tests",
+      "confidence": 1.0,
+      "latency_ms": 120.28,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "tst-04",
+      "category": "Tests",
+      "expected_tool": "inspect_tests",
+      "selected_tool": "inspect_tests",
+      "confidence": 1.0,
+      "latency_ms": 122.48,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "tst-05",
+      "category": "Tests",
+      "expected_tool": "inspect_tests",
+      "selected_tool": "inspect_tests",
+      "confidence": 1.0,
+      "latency_ms": 114.67,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "tst-06",
+      "category": "Tests",
+      "expected_tool": "inspect_tests",
+      "selected_tool": "inspect_tests",
+      "confidence": 1.0,
+      "latency_ms": 124.52,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "tst-07",
+      "category": "Tests",
+      "expected_tool": "inspect_tests",
+      "selected_tool": "inspect_tests",
+      "confidence": 1.0,
+      "latency_ms": 118.31,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "tst-08",
+      "category": "Tests",
+      "expected_tool": "inspect_tests",
+      "selected_tool": "inspect_tests",
+      "confidence": 1.0,
+      "latency_ms": 124.6,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "tst-09",
+      "category": "Tests",
+      "expected_tool": "inspect_tests",
+      "selected_tool": "inspect_tests",
+      "confidence": 1.0,
+      "latency_ms": 118.33,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "tst-10",
+      "category": "Tests",
+      "expected_tool": "inspect_tests",
+      "selected_tool": "inspect_tests",
+      "confidence": 0.953,
+      "latency_ms": 119.61,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "pip-01",
+      "category": "Pipeline",
+      "expected_tool": "inspect_pipeline",
+      "selected_tool": "inspect_pipeline",
+      "confidence": 1.0,
+      "latency_ms": 121.72,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "pip-02",
+      "category": "Pipeline",
+      "expected_tool": "inspect_pipeline",
+      "selected_tool": "inspect_pipeline",
+      "confidence": 1.0,
+      "latency_ms": 118.24,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "pip-03",
+      "category": "Pipeline",
+      "expected_tool": "inspect_pipeline",
+      "selected_tool": "inspect_pipeline",
+      "confidence": 1.0,
+      "latency_ms": 123.9,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "pip-04",
+      "category": "Pipeline",
+      "expected_tool": "inspect_pipeline",
+      "selected_tool": "inspect_pipeline",
+      "confidence": 1.0,
+      "latency_ms": 118.24,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "pip-05",
+      "category": "Pipeline",
+      "expected_tool": "inspect_pipeline",
+      "selected_tool": "inspect_pipeline",
+      "confidence": 0.731,
+      "latency_ms": 116.11,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "pip-06",
+      "category": "Pipeline",
+      "expected_tool": "inspect_pipeline",
+      "selected_tool": "inspect_pipeline",
+      "confidence": 1.0,
+      "latency_ms": 121.81,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "pip-07",
+      "category": "Pipeline",
+      "expected_tool": "inspect_pipeline",
+      "selected_tool": "inspect_pipeline",
+      "confidence": 1.0,
+      "latency_ms": 123.21,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "pip-08",
+      "category": "Pipeline",
+      "expected_tool": "inspect_pipeline",
+      "selected_tool": "inspect_pipeline",
+      "confidence": 1.0,
+      "latency_ms": 118.88,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "pip-09",
+      "category": "Pipeline",
+      "expected_tool": "inspect_pipeline",
+      "selected_tool": "inspect_pipeline",
+      "confidence": 1.0,
+      "latency_ms": 118.2,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "pip-10",
+      "category": "Pipeline",
+      "expected_tool": "inspect_pipeline",
+      "selected_tool": "inspect_pipeline",
+      "confidence": 1.0,
+      "latency_ms": 121.71,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "ops-01",
+      "category": "CloudOps",
+      "expected_tool": "scale_auto_scaling_group",
+      "selected_tool": "scale_auto_scaling_group",
+      "confidence": 0.953,
+      "latency_ms": 119.0,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "ops-02",
+      "category": "CloudOps",
+      "expected_tool": "remediate_oom_pod",
+      "selected_tool": "remediate_oom_pod",
+      "confidence": 1.0,
+      "latency_ms": 122.38,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "ops-03",
+      "category": "CloudOps",
+      "expected_tool": "flush_redis_cache",
+      "selected_tool": "flush_redis_cache",
+      "confidence": 1.0,
+      "latency_ms": 119.63,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "ops-04",
+      "category": "CloudOps",
+      "expected_tool": "isolate_compromised_instance",
+      "selected_tool": "isolate_compromised_instance",
+      "confidence": 1.0,
+      "latency_ms": 122.39,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "ops-05",
+      "category": "CloudOps",
+      "expected_tool": "fetch_cloudwatch_metrics",
+      "selected_tool": "fetch_cloudwatch_metrics",
+      "confidence": 1.0,
+      "latency_ms": 114.8,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "ops-06",
+      "category": "CloudOps",
+      "expected_tool": "scale_auto_scaling_group",
+      "selected_tool": "scale_auto_scaling_group",
+      "confidence": 1.0,
+      "latency_ms": 117.6,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "ops-07",
+      "category": "CloudOps",
+      "expected_tool": "remediate_oom_pod",
+      "selected_tool": "remediate_oom_pod",
+      "confidence": 1.0,
+      "latency_ms": 115.52,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "ops-08",
+      "category": "CloudOps",
+      "expected_tool": "flush_redis_cache",
+      "selected_tool": "flush_redis_cache",
+      "confidence": 1.0,
+      "latency_ms": 120.33,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "ops-09",
+      "category": "CloudOps",
+      "expected_tool": "isolate_compromised_instance",
+      "selected_tool": "isolate_compromised_instance",
+      "confidence": 1.0,
+      "latency_ms": 123.83,
+      "is_correct": true,
+      "should_escalate": false
+    },
+    {
+      "id": "ops-10",
+      "category": "CloudOps",
+      "expected_tool": "terminate_rds_database",
+      "selected_tool": "terminate_rds_database",
+      "confidence": 1.0,
+      "latency_ms": 121.74,
+      "is_correct": true,
+      "should_escalate": false
+    }
+  ]
+}

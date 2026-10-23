@@ -134,7 +134,150 @@ def aws_terminate_rds(db_instance_id: str) -> ToolResult:
     )
 
 
+def inspect_dependencies(log_text: str = "") -> ToolResult:
+    """Diagnostic Tool: Scans CI/CD failure log for missing dependencies, modules, or package conflicts."""
+    t0 = time.perf_counter()
+    lines = log_text.splitlines()
+    observed_evidence = []
+    missing_packages = []
+
+    for i, line in enumerate(lines, 1):
+        if "ModuleNotFoundError" in line or "No module named" in line:
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "PythonModuleMissing"})
+            parts = line.split("No module named")
+            if len(parts) > 1:
+                missing_packages.append(parts[1].strip().strip("'\""))
+        elif "Cannot find module" in line or "npm ERR!" in line:
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "NodeModuleMissing"})
+            parts = line.split("Cannot find module")
+            if len(parts) > 1:
+                missing_packages.append(parts[1].strip().strip("'\""))
+        elif "pip install" in line or "requirements.txt" in line or "package.json" in line:
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "ManifestReference"})
+
+    output = {
+        "diagnostic_category": "Dependencies & Packages",
+        "missing_items": list(set(missing_packages)) if missing_packages else ["unresolved_dependency"],
+        "observed_facts": observed_evidence,
+        "suggested_verification": f"pip check || npm ls {missing_packages[0] if missing_packages else ''}".strip(),
+        "hypothesis": "Build failed due to uninstalled or unpinned runtime/build dependency."
+    }
+    return ToolResult(
+        success=True,
+        tool_name="inspect_dependencies",
+        output=output,
+        message=f"Dependency inspection complete: found {len(observed_evidence)} relevant log lines.",
+        execution_time_ms=round((time.perf_counter() - t0) * 1000, 1),
+    )
+
+
+def inspect_docker(log_text: str = "") -> ToolResult:
+    """Diagnostic Tool: Scans build log for Dockerfile parse errors, image storage constraints, or container crashes."""
+    t0 = time.perf_counter()
+    lines = log_text.splitlines()
+    observed_evidence = []
+    error_type = "GenericDockerBuildFailure"
+
+    for i, line in enumerate(lines, 1):
+        line_lower = line.lower()
+        if "dockerfile parse error" in line_lower or "failed to solve" in line_lower:
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "SyntaxError"})
+            error_type = "DockerfileParseError"
+        elif "no space left on device" in line_lower or "storage" in line_lower:
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "StorageExhaustion"})
+            error_type = "DiskSpaceExhausted"
+        elif "step " in line_lower or "copy failed" in line_lower or "run " in line_lower:
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "BuildStep"})
+
+    output = {
+        "diagnostic_category": "Docker & Container Runtime",
+        "error_type": error_type,
+        "observed_facts": observed_evidence,
+        "suggested_verification": "docker builder prune -f && docker build --no-cache .",
+        "hypothesis": "Container image build terminated during instruction execution or local daemon disk exhaustion."
+    }
+    return ToolResult(
+        success=True,
+        tool_name="inspect_docker",
+        output=output,
+        message=f"Docker inspection complete: classified {error_type} across {len(observed_evidence)} log lines.",
+        execution_time_ms=round((time.perf_counter() - t0) * 1000, 1),
+    )
+
+
+def inspect_tests(log_text: str = "") -> ToolResult:
+    """Diagnostic Tool: Scans test output logs for AssertionErrors, HTTP status code mismatches, and mock failures."""
+    t0 = time.perf_counter()
+    lines = log_text.splitlines()
+    observed_evidence = []
+    assertion_mismatches = []
+
+    for i, line in enumerate(lines, 1):
+        if "AssertionError" in line or "assert " in line:
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "AssertionFailure"})
+            assertion_mismatches.append(line.strip())
+        elif "FAILED" in line or "FAIL " in line or "expected" in line.lower():
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "TestExpectationMismatch"})
+        elif "Traceback" in line:
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "StackTrace"})
+
+    output = {
+        "diagnostic_category": "Automated Test Suite",
+        "failure_count": max(len(assertion_mismatches), 1),
+        "observed_facts": observed_evidence,
+        "suggested_verification": "pytest -vv -k 'test_failing_case' --tb=short",
+        "hypothesis": "Unit or integration test assertion failed due to unexpected API response or state divergence."
+    }
+    return ToolResult(
+        success=True,
+        tool_name="inspect_tests",
+        output=output,
+        message=f"Test inspection complete: isolated {len(observed_evidence)} assertion/traceback lines.",
+        execution_time_ms=round((time.perf_counter() - t0) * 1000, 1),
+    )
+
+
+def inspect_pipeline(log_text: str = "") -> ToolResult:
+    """Diagnostic Tool: Scans CI/CD workflow configurations, permissions, and runner infrastructure."""
+    t0 = time.perf_counter()
+    lines = log_text.splitlines()
+    observed_evidence = []
+    config_issue = "PipelineConfigurationError"
+
+    for i, line in enumerate(lines, 1):
+        line_lower = line.lower()
+        if "permission denied" in line_lower or "403 forbidden" in line_lower or "eacces" in line_lower:
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "PermissionDenied"})
+            config_issue = "PermissionsOrCredentialError"
+        elif "mapping values are not allowed" in line_lower or "yaml" in line_lower or "syntax error" in line_lower:
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "YAMLParseError"})
+            config_issue = "YAMLConfigurationSyntaxError"
+        elif "jenkinsfile" in line_lower or "workflow.yaml" in line_lower or ".github" in line_lower:
+            observed_evidence.append({"line_number": i, "content": line.strip(), "type": "PipelineDefinition"})
+
+    output = {
+        "diagnostic_category": "CI/CD Pipeline & Infrastructure",
+        "issue_type": config_issue,
+        "observed_facts": observed_evidence,
+        "suggested_verification": "yamllint .github/workflows/*.yaml || chmod +x ./gradlew",
+        "hypothesis": "Runner halted due to pipeline script syntax invalidity or missing execution permissions."
+    }
+    return ToolResult(
+        success=True,
+        tool_name="inspect_pipeline",
+        output=output,
+        message=f"Pipeline inspection complete: classified {config_issue} across {len(observed_evidence)} lines.",
+        execution_time_ms=round((time.perf_counter() - t0) * 1000, 1),
+    )
+
+
 ALL_AVAILABLE_TOOLS = {
+    # CI/CD Diagnostic Tools (#tool-selection)
+    "inspect_dependencies": inspect_dependencies,
+    "inspect_docker": inspect_docker,
+    "inspect_tests": inspect_tests,
+    "inspect_pipeline": inspect_pipeline,
+    # Production Cloud Ops Tools
     "fetch_cloudwatch_metrics": aws_fetch_cloudwatch_metrics,
     "scale_auto_scaling_group": aws_scale_auto_scaling_group,
     "flush_redis_cache": aws_flush_redis_cache,
@@ -142,3 +285,4 @@ ALL_AVAILABLE_TOOLS = {
     "remediate_oom_pod": aws_remediate_oom_pod,
     "terminate_rds_database": aws_terminate_rds,
 }
+

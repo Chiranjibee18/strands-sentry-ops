@@ -178,6 +178,46 @@ def get_scenarios():
             "guardrail_expected": "PROCEED",
             "description": "Immediate containment of compromised cloud asset within 250ms total response time.",
         },
+        {
+            "id": "scenario-cicd-deps",
+            "title": "CI/CD Build Failure: Missing Python Module",
+            "severity": "P2 CI/CD",
+            "tag": "#tool-selection",
+            "prompt": "Traceback (most recent call last):\n  File 'manage.py', line 10\nModuleNotFoundError: No module named 'django'",
+            "expected_decision": "inspect_dependencies",
+            "guardrail_expected": "PROCEED",
+            "description": "Decider 2B identifies missing dependency in 115ms, isolating unpinned package requirements.",
+        },
+        {
+            "id": "scenario-cicd-docker",
+            "title": "Docker Build Termination (Parse Error)",
+            "severity": "P2 CI/CD",
+            "tag": "#tool-selection",
+            "prompt": "failed to solve: Dockerfile parse error line 14: unknown instruction: ENVI",
+            "expected_decision": "inspect_docker",
+            "guardrail_expected": "PROCEED",
+            "description": "Instant tool dispatch isolating Dockerfile syntax defects before deployment.",
+        },
+        {
+            "id": "scenario-cicd-tests",
+            "title": "Test Suite Failure: AssertionError 200 != 500",
+            "severity": "P2 CI/CD",
+            "tag": "#tool-selection",
+            "prompt": "pytest FAILED tests/test_orders.py::test_checkout - AssertionError: expected 200 got 500",
+            "expected_decision": "inspect_tests",
+            "guardrail_expected": "PROCEED",
+            "description": "Decider 2B routes failing assertion logs directly to test diagnostic inspector.",
+        },
+        {
+            "id": "scenario-cicd-pipeline",
+            "title": "Workflow YAML Syntax & Permissions Error",
+            "severity": "P2 CI/CD",
+            "tag": "#tool-selection",
+            "prompt": "workflow.yaml: mapping values are not allowed here at line 24 column 7",
+            "expected_decision": "inspect_pipeline",
+            "guardrail_expected": "PROCEED",
+            "description": "Flags YAML indentation and GitHub Actions / Jenkins runner permission errors.",
+        },
     ]
 
 
@@ -214,6 +254,16 @@ def get_benchmarks():
         with open(bench_file, "r") as f:
             return json.load(f)
     return run_comprehensive_benchmark(iterations_per_scenario=2)
+
+
+@app.get("/api/benchmarks/dataset")
+def get_dataset_benchmarks():
+    dataset_file = "benchmarks/dataset_eval_results.json"
+    if os.path.exists(dataset_file):
+        with open(dataset_file, "r") as f:
+            return json.load(f)
+    from benchmarks.evaluate_dataset import evaluate_labeled_dataset
+    return evaluate_labeled_dataset()
 
 
 @app.post("/api/benchmarks/run")

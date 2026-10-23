@@ -24,6 +24,7 @@ from decider_patterns.policy import PolicyClassificationResult
 from decider_patterns.context_scorer import ContextChunk, ScoredContextChunk
 from .tools import ALL_AVAILABLE_TOOLS, ToolResult
 from .bedrock_client import AmazonBedrockClient, BedrockInferenceResult
+from .security import redact_secrets, validate_input_log, detect_prompt_injection
 
 
 class StepTelemetry(BaseModel):
@@ -59,11 +60,17 @@ class AgentExecutionReport(BaseModel):
 
 class StrandsSentryAgent:
     """
-    Autonomous AWS Cloud Operations & Security Agent.
+    Autonomous AWS Cloud Operations & CI/CD Security Agent.
     Combines Strands Decider 2B with Amazon Bedrock.
     """
 
     AVAILABLE_TOOLS = [
+        # CI/CD Diagnostic Tools (#tool-selection)
+        ToolDefinition(name="inspect_dependencies", description="Inspect missing Python/Node packages or dependency resolution conflicts"),
+        ToolDefinition(name="inspect_docker", description="Inspect Dockerfile syntax errors, storage exhaustion, or container image builds"),
+        ToolDefinition(name="inspect_tests", description="Inspect test suite AssertionErrors, expectation mismatches, or traceback failures"),
+        ToolDefinition(name="inspect_pipeline", description="Inspect CI/CD pipeline definitions, workflow.yaml syntax, or runner permissions"),
+        # Cloud Operations & SRE Tools
         ToolDefinition(name="fetch_cloudwatch_metrics", description="Retrieve live CloudWatch alarms and telemetry"),
         ToolDefinition(name="scale_auto_scaling_group", description="Scale EC2 Auto Scaling Group capacity up or down"),
         ToolDefinition(name="flush_redis_cache", description="Evict stale cache keys from ElastiCache Redis cluster"),
@@ -93,15 +100,20 @@ class StrandsSentryAgent:
 
     def handle_request(self, user_query: str, proposed_args: Optional[Dict[str, Any]] = None) -> AgentExecutionReport:
         """
-        Executes the full agent loop for an operational request.
+        Executes the full agent loop for an operational or diagnostic request.
         """
+        # Step 0: Input Bounds Validation & Secret Redaction
+        validated_query, input_meta = validate_input_log(user_query)
+        sanitized_query, redactions = redact_secrets(validated_query)
+        has_injection, injection_msg = detect_prompt_injection(validated_query)
+
         t_start = time.perf_counter()
         req_id = f"req-{int(time.time()*1000)}"
         steps: List[StepTelemetry] = []
         total_cost = 0.0
 
         # Step 1: Policy Classification (#policy) - Strands Decider 2B
-        policy_res = self.policy_classifier.classify_event(user_query)
+        policy_res = self.policy_classifier.classify_event(sanitized_query)
         steps.append(
             StepTelemetry(
                 step_name="1. Operational Policy Classification",
@@ -117,7 +129,7 @@ class StrandsSentryAgent:
         )
 
         # Step 2: Model Routing (#model-routing) - Strands Decider 2B
-        routing_res = self.model_router.route_request(user_query)
+        routing_res = self.model_router.route_request(sanitized_query)
         steps.append(
             StepTelemetry(
                 step_name="2. Confidence Model Routing",
@@ -133,7 +145,7 @@ class StrandsSentryAgent:
         )
 
         # Step 3: Fast Tool Selection (#tool-selection) - Strands Decider 2B
-        tool_res = self.tool_selector.select_tool(user_query)
+        tool_res = self.tool_selector.select_tool(sanitized_query)
         steps.append(
             StepTelemetry(
                 step_name="3. Deterministic Tool Selection",
@@ -149,7 +161,7 @@ class StrandsSentryAgent:
         )
 
         # Step 4: Context & Memory Scoring (#context-memory) - Strands Decider 2B
-        scored_chunks = self.context_scorer.score_chunks(user_query, self.RUNBOOK_CHUNKS)
+        scored_chunks = self.context_scorer.score_chunks(sanitized_query, self.RUNBOOK_CHUNKS)
         injected_chunks = [c for c in scored_chunks if c.is_injected]
         steps.append(
             StepTelemetry(
@@ -166,13 +178,13 @@ class StrandsSentryAgent:
         )
 
         # Synthesize tool arguments if not explicitly provided
-        args = proposed_args or self._derive_default_args(tool_res.selected_tool, user_query)
+        args = proposed_args or self._derive_default_args(tool_res.selected_tool, sanitized_query)
 
         # Step 5: Grounding & Safety Guardrail Check (#guardrails) - Strands Decider 2B
         tool_event = ToolCallEvent(
             tool_name=tool_res.selected_tool,
             tool_args=args,
-            user_intent=user_query,
+            user_intent=sanitized_query,
             session_id=req_id,
         )
         guardrail_res = self.guardrail.before_tool_call(tool_event)
@@ -186,21 +198,30 @@ class StrandsSentryAgent:
                 confidence=guardrail_res.confidence,
                 latency_ms=guardrail_res.latency_ms,
                 cost_usd=0.00000,
-                details={"is_grounded": guardrail_res.is_grounded, "args": args},
+                details={
+                    "is_grounded": guardrail_res.is_grounded,
+                    "args": args,
+                    "has_injection_directive": has_injection,
+                    "redacted_secrets": redactions,
+                },
             )
         )
 
-        # Check Intervention Action
+        # Check Intervention Action & Strict Bounded Execution
         tool_output: Optional[ToolResult] = None
         bedrock_rca: Optional[BedrockInferenceResult] = None
         status = "SUCCESS"
 
-        if isinstance(guardrail_res.intervention, Deny):
+        if tool_res.selected_tool not in ALL_AVAILABLE_TOOLS:
+            status = "REJECTED_UNKNOWN_TOOL"
+        elif tool_res.confidence < 0.35:
+            status = "NEEDS_OPERATOR_REVIEW"
+        elif isinstance(guardrail_res.intervention, Deny):
             status = "BLOCKED_BY_GUARDRAIL"
         elif isinstance(guardrail_res.intervention, Confirm):
             status = "REQUIRES_APPROVAL"
         else:
-            # Step 6: Tool Execution (Safe & Grounded!)
+            # Step 6: Tool Execution (Safe, Grounded & Allowlisted!)
             tool_fn = ALL_AVAILABLE_TOOLS.get(tool_res.selected_tool)
             if tool_fn:
                 try:
@@ -261,7 +282,7 @@ class StrandsSentryAgent:
 
         return AgentExecutionReport(
             request_id=req_id,
-            user_query=user_query,
+            user_query=sanitized_query,
             policy=policy_res,
             routing=routing_res,
             tool_selection=tool_res,
@@ -336,6 +357,9 @@ class StrandsSentryAgent:
             elif "latency" in q_lower:
                 metric = "TargetResponseTime"
             return {"service_name": svc_name, "metric_name": metric}
+
+        elif tool_name in ["inspect_dependencies", "inspect_docker", "inspect_tests", "inspect_pipeline"]:
+            return {"log_text": query}
 
         elif tool_name == "terminate_rds_database":
             db_match = re.search(r"(?:database|db|rds)\s+([a-zA-Z0-9_\-]+)", query, re.IGNORECASE)

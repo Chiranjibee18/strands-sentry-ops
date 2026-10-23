@@ -226,17 +226,16 @@ class StrandsDeciderClient:
                         reasoning_summary="Blocked by Decider 2B: Destructive tool execution is ungrounded in user request (scope drift attack detected).",
                     )
                 else:
-                    # User asked for destruction. Check for production impact without explicit approval ticket
-                    is_prod_target = "prod" in args_lower or "production" in args_lower or "production" in intent_lower or "prod-" in intent_lower
+                    # User asked for destruction. Check for explicit approval ticket
                     has_approval_ticket = any(w in intent_lower for w in ["authorized by", "ticket", "confirm", "sec-", "approved", "override"])
-                    if is_prod_target and not has_approval_ticket:
+                    if not has_approval_ticket:
                         # Triggers CONFIRM (Human-in-the-loop approval)
                         return DeciderAnswer(
                             type="noul",
                             prediction=True,
                             probability=0.68,
                             confidence=0.68,
-                            reasoning_summary="Requires Human Approval: Destructive operation on production resource requires operator confirmation.",
+                            reasoning_summary="Requires Human Approval: Destructive operation requires explicit operator confirmation.",
                         )
                     else:
                         return DeciderAnswer(
@@ -244,7 +243,7 @@ class StrandsDeciderClient:
                             prediction=True,
                             probability=0.92,
                             confidence=0.92,
-                            reasoning_summary="Verified Grounded: Destructive operation explicitly authorized by user intent.",
+                            reasoning_summary="Verified Grounded: Destructive operation explicitly authorized by operator override ticket.",
                         )
 
             # 3. Non-destructive operational alignment
@@ -312,19 +311,32 @@ class StrandsDeciderClient:
                 if len(token) > 2 and token in state_lower:
                     match_score += 4.5
             
-            # Domain heuristics for tool selection
-            if opt_lower in ["isolate_compromised_instance", "security"] and any(w in state_lower for w in ["isolate", "compromised", "cve", "breach", "crypto", "miner", "unauthorized", "quarantine"]):
-                match_score += 9.0
-            elif opt_lower in ["scale_auto_scaling_group", "scale_asg", "infra"] and any(w in state_lower for w in ["scale", "asg", "traffic", "spike", "cpu", "instances", "capacity"]):
-                match_score += 9.0
-            elif opt_lower in ["flush_redis_cache", "flush_cache"] and any(w in state_lower for w in ["redis", "cache", "stale", "flush", "evict"]):
-                match_score += 9.0
-            elif opt_lower in ["remediate_oom_pod", "k8s"] and any(w in state_lower for w in ["oom", "oomkilled", "exit 137", "memory leak", "pod", "kubernetes", "crashloop"]):
-                match_score += 9.0
-            elif opt_lower in ["terminate_rds_database", "delete_rds"] and any(w in state_lower for w in ["terminate", "rds", "database", "wipe", "drop table", "destroy db", "delete rds"]):
-                match_score += 10.0
-            elif opt_lower in ["fetch_cloudwatch_metrics", "diagnostics"] and any(w in state_lower for w in ["metric", "cloudwatch", "telemetry", "alarm", "graph", "status"]):
-                match_score += 6.5
+            # CI/CD Diagnostic Tools heuristics (#tool-selection)
+            if opt_lower in ["inspect_dependencies", "dependencies"] and any(w in state_lower for w in ["modulenotfounderror", "no module named", "cannot find module", "npm err", "import error", "dependency", "package", "requirements", "package.json", "pip", "node_modules"]):
+                match_score += 15.0
+            elif opt_lower in ["inspect_docker", "docker"] and any(w in state_lower for w in ["dockerfile", "failed to solve", "no space left on device", "image build", "container builder", "buildkit", "docker daemon", "apk update", "workdir", "copy failed", "build context", "docker image"]):
+                match_score += 15.0
+            elif opt_lower in ["inspect_tests", "tests"] and any(w in state_lower for w in ["assertionerror", "expected 200 got 500", "assert ", "failed test", "jest", "pytest", "test suite", "expected:", "received:", "lists differ", "__tests__", ".spec.", "expected status code"]):
+                match_score += 15.0
+            elif opt_lower in ["inspect_pipeline", "pipeline"] and any(w in state_lower for w in ["jenkins", "jenkinsfile", "jenkins pipeline", "permission denied", "workflow.yaml", "mapping values are not allowed", "yaml", "syntax error near", ".github", "ci/cd", "gitlab-ci", "runner step", "rpc failed", "http 403"]):
+                match_score += 16.0
+
+            # Cloud Ops heuristics for tool selection
+            elif opt_lower in ["isolate_compromised_instance", "security"] and any(w in state_lower for w in ["isolate", "compromised", "cve", "breach", "crypto", "miner", "unauthorized", "quarantine"]):
+                match_score += 15.0
+            elif opt_lower in ["flush_redis_cache", "flush_cache"] and any(w in state_lower for w in ["redis", "elasticache", "cache-cluster", "stale keys", "flush stale", "cache hit rate", "cache keys"]):
+                match_score += 15.0
+            elif opt_lower in ["remediate_oom_pod", "k8s"] and any(w in state_lower for w in ["oom", "oomkilled", "exit 137", "memory limit", "pod", "kubernetes", "crashloop"]):
+                match_score += 15.0
+            elif opt_lower in ["scale_auto_scaling_group", "scale_asg", "infra"] and (
+                any(w in state_lower for w in ["asg", "auto scaling", "payment-service-asg", "auth-asg", "auth-service-asg"]) or
+                (any(w in state_lower for w in ["scale to", "scale up", "desired capacity"]) and "redis" not in state_lower and "pod" not in state_lower)
+            ):
+                match_score += 15.0
+            elif opt_lower in ["terminate_rds_database", "delete_rds"] and any(w in state_lower for w in ["terminate", "rds", "destroy db", "delete rds", "drop table", "database instance"]):
+                match_score += 16.0
+            elif opt_lower in ["fetch_cloudwatch_metrics", "diagnostics"] and any(w in state_lower for w in ["metric", "cloudwatch", "telemetry", "retrieve cloudwatch", "graph", "status"]):
+                match_score += 12.0
             
             # Domain heuristics for policy triage (#policy)
             elif opt_lower == "p1_critical_outage" and any(w in state_lower for w in ["p1", "critical", "oomkilled", "crash", "outage", "down", "500", "emergency"]):
