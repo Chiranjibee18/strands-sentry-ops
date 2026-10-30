@@ -54,7 +54,7 @@ decision-patterns/incident-tool-selection/
     └── test_tool_dispatch.py      # Dynamic tool dispatch verification
 ```
 
-### 3-Line Quickstart for Other Builders
+### 3-Line Quickstart for Other Builders for only
 ```python
 from decision_patterns.incident_tool_selection.decider_client import IncidentDeciderClient
 
